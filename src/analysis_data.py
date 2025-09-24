@@ -204,7 +204,7 @@ class DSInfo:
 
     def save_info(self, dst_folder: str) -> None:
         dst = Path(dst_folder)
-        dst.mkdir(exist_ok=True)
+        dst.mkdir(parents=True, exist_ok=True)
 
         self.__cls_table(dst)
         self.__ext_table(dst)
