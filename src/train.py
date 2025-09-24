@@ -13,7 +13,7 @@ def train_yolo(
         epochs=3,
         batch=16,
         imgsz=640,
-        lr0=0.001):
+        lr0=0.1):
 
     if not Path(data_yaml).exists():
         raise FileNotFoundError(f"Error: couldn't find {data_yaml}")
@@ -46,8 +46,8 @@ if __name__ == "__main__":
     parser.add_argument("--epo", type=int, default=3, help="Num of training epochs")
     parser.add_argument("--bsz", type=int, default=16, help="Batch size")
     parser.add_argument("--isz", type=int,  default=640, help="Size of input images")
-    parser.add_argument("--lr0", type=float, default=0.001, help="Initial learning rate")
+    parser.add_argument("--lr0", type=float, default=0.1, help="Initial learning rate")
 
     args = parser.parse_args()
 
-    train_yolo(args.cfg, args.wght, args.gpu, args.epo, args.bsz, args.isz, args.lr0)
+    train_yolo(args.data, args.wght, args.gpu, args.epo, args.bsz, args.isz, args.lr0)
