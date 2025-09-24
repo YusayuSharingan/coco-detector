@@ -3,16 +3,17 @@ from collections import defaultdict
 from pathlib import Path
 import json
 
+import pandas as pd
 from pycocotools.coco import COCO
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
+
 
 class DSInfo:
     def __init__(self, ds_root: str, dst_folder: str, ann_train: str, ann_val: str) -> None:
         root = Path(ds_root)
         DSInfo.__verificate_path(root)
 
-        phases = ["train", "val", "test"]
+        phases = ["TRAIN", "VAL", "TEST"]
         self.__ds_pathes: dict[str, Path] = {p: None for p in phases}
 
         for phase in phases:
@@ -43,9 +44,7 @@ class DSInfo:
             self.__disrtibution[phase] = {self.__cls_ids[phase][idx]: n for idx, n in distr_by_ids.items()}
             self.__resolutions[phase] = self.__get_resols(imgz)
 
-        self.save_info(dst_folder, phases)
-
-
+        self.save_info(dst_folder)
 
 
     @staticmethod
@@ -109,31 +108,70 @@ class DSInfo:
         return self.__resolutions
     
 
-    def __plot_cls_table(self, ax: Axes, phases: list[str]):
-        classes = list(self.get_classes().values())
-        n_cls = len(classes[0])
+    def __cls_table(self, dst: Path) -> None:
+        cls_df = pd.DataFrame(self.get_classes())
 
-        ax.axis("off")
-        table = ax.table(
-            colLabels = ['#'] + phases[:2],
-            cellText = list(map(tuple, zip(range(1, n_cls+1), *classes))),
-            cellLoc="center",
-            loc="center"
-        )
+        columns = ['NUM'] + cls_df.columns.to_list()
+        raws = [[str(i+1)] + list(row) for i, row in zip(cls_df.index, cls_df.values)]
+
+        fig, ax = plt.subplots(figsize=(len(columns), round(len(raws)/5.5)))
+        table = ax.table(colLabels = columns, cellText = raws, cellLoc="center", loc="center")
         table.auto_set_font_size(False)
         table.set_fontsize(8)
-        table.scale(0.5, 0.8)
+        table.scale(1.2, 0.8)
+        ax.set_title("Class labels")
+        ax.axis("off")
 
-    def save_info(self, dst_folder: str, phases: list[str]) -> None:
-        fig, ax = plt.subplots(1, 2, figsize=(6, 12))
-
-        
-        self.__plot_cls_table(ax, phases)
+        fig.savefig(dst / "class_labels.jpg")
+        plt.close(fig)
 
 
+    def __ext_table(self, dst: Path) -> None:
+        ext_df = pd.DataFrame(self.get_possible_extensions()).fillna(0).astype(int)
+        ext_df.loc["TOTAL"] = self.get_images_amount()
+
+        columns = ['EXT'] + ext_df.columns.to_list()
+        raws = [[ext] + list(row) for ext, row in zip(ext_df.index, ext_df.values)]
+ 
+        fig, ax = plt.subplots(figsize=(len(columns), len(raws)*2))
+        table = ax.table(colLabels = columns, cellText = raws, cellLoc="center", loc="center")
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        ax.set_title("Extension types")
+        ax.axis("off")
+
+        fig.savefig(dst / "amount_images.jpg")
+        plt.close(fig)
+
+
+    def __distr_hist(self, dst: Path) -> None:
+        distr_df = pd.DataFrame(self.get_distribution()).fillna(0).astype(int)
+        lbls, cols = distr_df.index, distr_df.columns
+
+        fig, axs = plt.subplots(1, 2, figsize=(len(cols)*10, round(len(lbls)/5.5)))
+
+        for col, ax in zip(cols, axs):
+            colors = ["red" if x < 1e2 else "orange" if x < 1e3 else "yellow" if x < 1e4 else "lightgreen" for x in distr_df[col]]
+            ax.barh(lbls, distr_df[col], color=colors)
+            ax.set_xscale('log')
+            ax.set_ylabel("classes")
+            ax.set_xlabel("n_imgz")
+            ax.set_title(f"{col} dist")
+
+        fig.savefig(dst / "distribution_classes.jpg")
+        plt.close(fig)
+            
+
+    def save_info(self, dst_folder: str) -> None:
         dst = Path(dst_folder)
         dst.mkdir(exist_ok=True)
-        fig.savefig(dst / "tables.jpg")
+
+        self.__cls_table(dst)
+        self.__ext_table(dst)
+        self.__distr_hist(dst)
+
+        
+        
 
 
 
