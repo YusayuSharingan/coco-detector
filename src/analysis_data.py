@@ -161,6 +161,46 @@ class DSInfo:
         fig.savefig(dst / "distribution_classes.jpg")
         plt.close(fig)
             
+    
+    def __resol_plot(self, dst: Path) -> None:
+        resols = self.get_resolutions()
+        titles = resols.keys()
+
+        fig, axs = plt.subplots(1, 2, figsize=(8, 6))
+        for title, ax in zip(titles, axs):
+            coords = resols[title]
+            edges = {
+                "minx": min(coords, key=lambda c: c[0]),
+                "miny": min(coords, key=lambda c: c[1]),
+                "maxx": max(coords, key=lambda c: c[0]),
+                "maxy": max(coords, key=lambda c: c[1])
+            }
+            
+            x, y = [coord[0] for coord in coords], \
+                [coord[1] for coord in coords]
+            ax.scatter(x, y)
+            
+            average_x, average_y = round(sum(x) / len(x)), \
+                round(sum(y) / len(y))
+            ax.scatter([average_x], [average_y], c="lightgreen", marker='o')
+            ax.plot([average_x, average_x], [0, average_y], 'k--', c="lightgreen")
+            ax.plot([0, average_x], [average_y, average_y], 'k--', c="lightgreen")
+
+            for edge in edges.values():
+                ex, ey = edge
+                ax.scatter([ex], [ey], c="orange", marker='P')
+                ax.plot([ex, ex], [0, ey], 'k--', c="orange")
+                ax.plot([0, ex], [ey, ey], 'k--', c="orange")
+
+            ax.set_ylabel("height")
+            ax.set_xlabel("width")
+            ax.set_title(f"Resolutions in {title}")
+            
+        fig.savefig(dst / "resolutions.jpg")
+        plt.close(fig)
+        
+
+
 
     def save_info(self, dst_folder: str) -> None:
         dst = Path(dst_folder)
@@ -169,6 +209,7 @@ class DSInfo:
         self.__cls_table(dst)
         self.__ext_table(dst)
         self.__distr_hist(dst)
+        self.__resol_plot(dst)
 
         
         
