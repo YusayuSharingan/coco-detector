@@ -30,7 +30,7 @@ def separate_and_save_data(
         raise FileNotFoundError(f"Error: dataset downloaded incorrect - {src_dir} does not exist")
 
     tgt_dir = Path(tgt)
-    tgt_dir.mkdir(exist_ok=True)
+    tgt_dir.mkdir(parents=True, exist_ok=True)
 
     for ann in (ann_train, ann_val):
         ann_path = src_dir / ann
