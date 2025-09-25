@@ -1,0 +1,50 @@
+schema: '2.0'
+stages:
+  preprocess_load_dataset:
+    cmd: python src/load_data.py --url awsaf49/coco-2017-dataset --dst 
+      data/dataset --per 0.2 --ann annotations/instances_train2017.json 
+      annotations/instances_val2017.json
+    deps:
+    - path: src/load_data.py
+      hash: md5
+      md5: 3418d3e1de1c8e6d0c0dd245fdccb97d
+      size: 3330
+    outs:
+    - path: data/dataset
+      hash: md5
+      md5: bd0c6b3d5d5acca950f410c3cd953de7.dir
+      size: 5106975249
+      nfiles: 28102
+  preprocess_analysis_data:
+    cmd: python src/analysis_data.py --src data/dataset --dst assets --ann 
+      annotations/instances_train2017.json annotations/instances_val2017.json
+    deps:
+    - path: data/dataset
+      hash: md5
+      md5: bd0c6b3d5d5acca950f410c3cd953de7.dir
+      size: 5106975249
+      nfiles: 28102
+    - path: src/analysis_data.py
+      hash: md5
+      md5: fea646154a6292935c3499c00583086c
+      size: 9840
+  preprocess_convert_data:
+    cmd: python src/prepare_data.py --src data/dataset --dst data/prepared --yml
+      data/yolo_cfg.yaml --ann annotations/instances_train2017.json 
+      annotations/instances_val2017.json
+    deps:
+    - path: data/dataset
+      hash: md5
+      md5: bd0c6b3d5d5acca950f410c3cd953de7.dir
+      size: 5106975249
+      nfiles: 28102
+    - path: src/prepare_data.py
+      hash: md5
+      md5: 4941edb79e44ea3062e35953212030af
+      size: 3830
+    outs:
+    - path: data/prepared
+      hash: md5
+      md5: 5bbe85a8208a1c4716547cd8cb28aabd.dir
+      size: 4594951046
+      nfiles: 52757

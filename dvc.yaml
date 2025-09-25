@@ -32,3 +32,6 @@ stages:
       - src/train.py
     outs:
       - ${train.other.sv}
+
+  evaluate:
+    cmd: python src.evaluate.py --wght ${train.other.sv}/last.pt --data ${preprocess.convert_data.yml} --gpu --outs ${evaluate.outs}

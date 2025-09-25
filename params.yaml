@@ -29,7 +29,10 @@ train:
     bsize: 8
     lr0: 0.1
     imsz: 640
-    sv: outs
+    sv: weights
+
+evaluate:
+  outs: outs
 
 
 
