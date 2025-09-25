@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-import json
 
+import numpy as np
 import pandas as pd
 from pycocotools.coco import COCO
 import matplotlib.pyplot as plt
@@ -17,11 +17,11 @@ class DSInfo:
         self.__ds_pathes: dict[str, Path] = {p: None for p in phases}
 
         for phase in phases:
-            for file in root.glob(f"*{phase}*"):
+            for file in root.glob(f"*{phase.lower()}*"):
                 if file.is_dir(): self.__ds_pathes[phase] = file
 
             if not self.__ds_pathes[phase]: 
-                raise FileNotFoundError(f"Error: couldn't find images for {phase} in {root.absolute}")
+                raise FileNotFoundError(f"Error: couldn't find images for {phase} in {root.absolute()}")
         
         
         self.__pos_exts = {p: self.__cnt_exts(p) for p in phases}
@@ -87,11 +87,11 @@ class DSInfo:
 
             for ann in anns:
                 _, _, bw, bh = ann["bbox"]
-                bbox_w[ann["id"]] += bw/w
-                bbox_h[ann["id"]] += bh/h        
-                counter[ann["id"]] += 1
+                bbox_w[ann["category_id"]] += bw/w
+                bbox_h[ann["category_id"]] += bh/h        
+                counter[ann["category_id"]] += 1
                 
-        return {idx: [bbox_w[idx] / counter[idx], [bbox_h[idx] / counter[idx]]] for idx in counter.keys()}
+        return {idx: (bbox_w[idx] / counter[idx], bbox_h[idx] / counter[idx]) for idx in counter.keys()}
 
 
     def __get_resols(self, coco: COCO) -> list[tuple[int, int]]:
@@ -209,14 +209,14 @@ class DSInfo:
             average_x, average_y = round(sum(x) / len(x)), \
                 round(sum(y) / len(y))
             ax.scatter([average_x], [average_y], c="lightgreen", marker='o')
-            ax.plot([average_x, average_x], [0, average_y], 'k--', c="lightgreen")
-            ax.plot([0, average_x], [average_y, average_y], 'k--', c="lightgreen")
+            ax.plot([average_x, average_x], [0, average_y], '--', c="lightgreen")
+            ax.plot([0, average_x], [average_y, average_y], '--', c="lightgreen")
 
             for edge in edges.values():
                 ex, ey = edge
                 ax.scatter([ex], [ey], c="orange", marker='P')
-                ax.plot([ex, ex], [0, ey], 'k--', c="orange")
-                ax.plot([0, ex], [ey, ey], 'k--', c="orange")
+                ax.plot([ex, ex], [0, ey], '--', c="orange")
+                ax.plot([0, ex], [ey, ey], '--', c="orange")
 
             ax.set_ylabel("height")
             ax.set_xlabel("width")
@@ -229,15 +229,17 @@ class DSInfo:
         bbox_distr_df = pd.DataFrame(self.get_bbox_distribution())
         cols, lbls = bbox_distr_df.columns, bbox_distr_df.index
         
-        col_width = 0.1
-        y = list(range(lbls))
-        y_w = [(i-col_width) / 2 for i in range(len(lbls))]
-        y_h = [(i+col_width) / 2 for i in range(len(lbls))]
+        col_width = 0.35
+        y = np.arange(len(lbls))
 
-        fig, ax = plt.subplots()
-        for col, axs in zip(cols, axs):
-            ax.barh(y_w, bbox_distr_df[col][0], col_width, label = "width")
-            ax.barh(y_h, bbox_distr_df[col][1], col_width, label = "height")
+        fig, axs = plt.subplots(1, 2, figsize=(len(cols)*10, round(len(lbls)/5.5)))
+        for col, ax in zip(cols, axs):
+            widths = bbox_distr_df[col].map(lambda x: x[0])
+            height = bbox_distr_df[col].map(lambda x: x[1])
+
+            ax.barh(y - col_width/2, widths, col_width, label="width")
+            ax.barh(y + col_width/2, height, col_width, label="height")
+            ax.legend()
             ax.set_yticks(y, lbls)
             ax.set_title(f"{col} dist")
         
