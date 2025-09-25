@@ -1,0 +1,34 @@
+general:
+  dataset: data/dataset
+  prepared: data/prepared
+  ann_train: annotations/instances_train2017.json
+  ann_val: annotations/instances_val2017
+
+
+
+
+preprocess:
+  load_data:
+    url: wsaf49/coco-2017-dataset
+    per: 0.2
+  
+  analysis_data:
+    dst: assets
+  
+  convert_data:
+    yml: yolo_cfg.yaml
+
+
+train:
+  version: yolo11m.pt
+  regul:
+    optim: AdamW
+    lr0: 0.1
+  other:
+    epo: 50
+    bsize: 8
+    lr0: 0.1
+    imsz: 640
+
+
+
