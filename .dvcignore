@@ -6,3 +6,5 @@
 yolo11*
 
 .gitignore
+
+runs/

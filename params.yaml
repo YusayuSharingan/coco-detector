@@ -2,21 +2,21 @@ general:
   dataset: data/dataset
   prepared: data/prepared
   ann_train: annotations/instances_train2017.json
-  ann_val: annotations/instances_val2017
+  ann_val: annotations/instances_val2017.json
 
 
 
 
 preprocess:
   load_data:
-    url: wsaf49/coco-2017-dataset
+    url: awsaf49/coco-2017-dataset
     per: 0.2
   
   analysis_data:
     dst: assets
   
   convert_data:
-    yml: yolo_cfg.yaml
+    yml: data/yolo_cfg.yaml
 
 
 train:
@@ -29,6 +29,7 @@ train:
     bsize: 8
     lr0: 0.1
     imsz: 640
+    sv: outs
 
 
 
