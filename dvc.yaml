@@ -12,25 +12,26 @@ stages:
     
   preprocess_analysis_data:
     cmd: python src/analysis_data.py --src ${general.dataset} --dst ${preprocess.analysis_data.dst} --ann ${general.ann_train} ${general.ann_val}
-    dep:
+    deps:
       - ${general.dataset}
       - src/analysis_data.py
-    outs:
-      - ${preprocess.analysis_data.dst}
     
   preprocess_convert_data:
     cmd: python src/prepare_data.py --src ${general.dataset} --dst ${general.prepared} --yml ${preprocess.convert_data.yml} --ann ${general.ann_train} ${general.ann_val}
-    dep:
+    deps:
       - ${general.dataset}
       - src/prepare_data.py
     outs:
       - ${general.prepared}
 
   train:
-    cmd: python src/train.py --data ${preprocess.convert_data.yml} --wght ${train.version} --gpu --opt ${train.regul.optim} --epo ${train.other.epo} --bsz ${train.other.bsize} --isz ${train.other.imsz} --lr0 {train.regul.lr0}
-    dep:
+    cmd: python src/train.py --data ${preprocess.convert_data.yml} --wght ${train.version} --gpu --opt ${train.regul.optim} --epo ${train.other.epo} --bsz ${train.other.bsize} --isz ${train.other.imsz} --lr0 ${train.regul.lr0} --sv ${train.other.sv}
+    deps:
       - ${general.prepared}
       - ${preprocess.convert_data.yml}
       - src/train.py
     outs:
-      -outs
+      - ${train.other.sv}
+
+  evaluate:
+    cmd: python src.evaluate.py --wght ${train.other.sv}/last.pt --data ${preprocess.convert_data.yml} --gpu --outs ${evaluate.outs}
