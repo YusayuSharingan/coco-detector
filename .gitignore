@@ -3,3 +3,4 @@ data/
 yolo11*
 
 runs
+.venv

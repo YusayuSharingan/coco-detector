@@ -8,3 +8,4 @@ yolo11*
 .gitignore
 
 runs/
+.venv
