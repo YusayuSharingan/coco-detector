@@ -30,19 +30,22 @@ class DSInfo:
 
         self.__cls_ids = {}
         self.__disrtibution = {}
+        self.__bbox_distribution = {}
         self.__resolutions = {}
         for ann, phase in zip((ann_train, ann_val), phases[:2]):
             ann_path = root / ann
             DSInfo.__verificate_path(ann_path)
 
-            imgz = self.__open_annotation(ann_path)
             coco = COCO(ann_path)
 
             self.__cls_ids[phase] = self.__get_cls(coco)
 
-            distr_by_ids = self.__cnt_cls(coco, imgz)
-            self.__disrtibution[phase] = {self.__cls_ids[phase][idx]: n for idx, n in distr_by_ids.items()}
-            self.__resolutions[phase] = self.__get_resols(imgz)
+            cls_distr_by_ids = self.__cnt_cls(coco)
+            self.__disrtibution[phase] = {self.__cls_ids[phase][idx]: n for idx, n in cls_distr_by_ids.items()}
+            
+            bbox_distr_by_ids = self.__cnt_bbox(coco)
+            self.__bbox_distribution[phase] = {self.__cls_ids[phase][idx]: boxsz for idx, boxsz in bbox_distr_by_ids.items()}
+            self.__resolutions[phase] = self.__get_resols(coco)
 
         self.save_info(dst_folder)
 
@@ -52,32 +55,53 @@ class DSInfo:
         if not file.exists(): raise FileNotFoundError(f"Error: {file.absolute()} does not exist")
 
 
-    def __open_annotation(self, ann: Path):
-        print(f"Opening {ann}")
-        with open(ann, 'r', encoding='utf-8') as file:
-            return json.load(file)["images"]
-
-
-    def __get_cls(self, coco: COCO) -> dict[str, dict[str, int]]:
+    def __get_cls(self, coco: COCO) -> dict[str, dict[int, str]]:
         cat_ids = coco.getCatIds()
         cats = coco.loadCats(cat_ids)
-        return {cat["id"]: cat["name"] for cat in cats}
+        return {int(cat["id"]): cat["name"] for cat in cats}
 
 
-    def __cnt_cls(self, coco: COCO, imgz) -> dict[int, int]:
+    def __cnt_cls(self, coco: COCO) -> dict[int, int]:
         counter = defaultdict(int)
 
-        for img in imgz:
-            ann_ids = coco.getAnnIds(imgIds=img["id"])
+        for id in coco.imgs:
+            ann_ids = coco.getAnnIds(imgIds=id)
             annotations = coco.loadAnns(ann_ids)
             for ann in annotations:
                 counter[ann["category_id"]] += 1
         
         return dict(counter)
-        
 
-    def __get_resols(self, imgz) -> list[tuple[int, int]]:
-        return [(img["width"], img["height"]) for img in imgz]
+
+    def __cnt_bbox(self, coco: COCO) -> dict[int, tuple[int, int]]:
+        bbox_w = defaultdict(float)
+        bbox_h = defaultdict(float)
+        counter = defaultdict(int)
+
+        for id in coco.imgs:
+            annIds = coco.getAnnIds(imgIds=id)
+            anns = coco.loadAnns(annIds)
+
+            imgInfo = coco.loadImgs(id)[0]
+            h, w = imgInfo["height"], imgInfo["width"]
+
+            for ann in anns:
+                _, _, bw, bh = ann["bbox"]
+                bbox_w[ann["id"]] += bw/w
+                bbox_h[ann["id"]] += bh/h        
+                counter[ann["id"]] += 1
+                
+        return {idx: [bbox_w[idx] / counter[idx], [bbox_h[idx] / counter[idx]]] for idx in counter.keys()}
+
+
+    def __get_resols(self, coco: COCO) -> list[tuple[int, int]]:
+        resols = []
+        
+        for id in coco.imgs:
+            imgInfo = coco.loadImgs(id)[0]
+            resols.append((imgInfo["width"], imgInfo["height"]))    
+        
+        return resols
 
 
     def __cnt_exts(self, phase: str) -> dict[str, int]:
@@ -107,6 +131,8 @@ class DSInfo:
     def get_resolutions(self) -> dict[str, list[tuple[int, int]]]:
         return self.__resolutions
     
+    def get_bbox_distribution(self) -> dict[str, dict[str, tuple[int, int]]]:
+        return self.__bbox_distribution
 
     def __cls_table(self, dst: Path) -> None:
         cls_df = pd.DataFrame(self.get_classes())
@@ -198,8 +224,26 @@ class DSInfo:
             
         fig.savefig(dst / "resolutions.jpg")
         plt.close(fig)
-        
 
+    def __bbox_distr_hist(self, dst: Path) -> None:        
+        bbox_distr_df = pd.DataFrame(self.get_bbox_distribution())
+        cols, lbls = bbox_distr_df.columns, bbox_distr_df.index
+        
+        col_width = 0.1
+        y = list(range(lbls))
+        y_w = [(i-col_width) / 2 for i in range(len(lbls))]
+        y_h = [(i+col_width) / 2 for i in range(len(lbls))]
+
+        fig, ax = plt.subplots()
+        for col, axs in zip(cols, axs):
+            ax.barh(y_w, bbox_distr_df[col][0], col_width, label = "width")
+            ax.barh(y_h, bbox_distr_df[col][1], col_width, label = "height")
+            ax.set_yticks(y, lbls)
+            ax.set_title(f"{col} dist")
+        
+        fig.savefig(dst / "distribution_bboxes.jpg")
+        plt.close(fig)
+        
 
 
     def save_info(self, dst_folder: str) -> None:
@@ -209,6 +253,7 @@ class DSInfo:
         self.__cls_table(dst)
         self.__ext_table(dst)
         self.__distr_hist(dst)
+        self.__bbox_distr_hist(dst)
         self.__resol_plot(dst)
 
         

@@ -105,9 +105,6 @@ class YOLOFormater:
             f"names: {list(self.sorted_cats.values())}",
         ]
 
-        # for id, cls in self.sorted_cats.items():
-        #     lines.append(f"\t{id}: {cls}\n")
-
         with open(self.ds_path.parent / Path(yaml).name, 'w') as file:
             file.writelines(lines)
 
