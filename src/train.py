@@ -45,7 +45,7 @@ class Training:
                 print("Warning: cuda is not avalibale")
             device = "cuda"
 
-        model = YOLO(weights, task='detect', pretrained=False).to(device)
+        model = YOLO(weights, task='detect').to(device)
         model.add_callback("on_fit_epoch_end", self.on_fit_epoch_end)
         return model
 
@@ -61,7 +61,8 @@ class Training:
             epochs=epochs,
             batch=batch,
             imgsz=imgsz,
-            lr0=lr0
+            lr0=lr0,
+            cache=True
         )
 
 
